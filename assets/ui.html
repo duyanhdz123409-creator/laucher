@@ -1042,6 +1042,7 @@ function updateAuthUI() {
     return;
   }
 
+  fakeLoaderDone = false;
   screen.classList.remove('done');
   content.innerHTML = '';
 
@@ -1536,7 +1537,25 @@ const TABS = [
       ["C++20 | WebView2 | ImGui overlay", "Viewport Method | Camera Rotation"].forEach(t => { const i = document.createElement("div"); i.className = "info"; i.textContent = t; gg.appendChild(i); });
     }));
   }},
-  { name:"Debug", build(g, add) {
+  { name:"Setting", build(g, add) {
+    add(g, group("Session & Key", (gg) => {
+      const infoText = document.createElement("div");
+      infoText.className = "info";
+      infoText.textContent = "Manage active session or reset your key to switch accounts.";
+      gg.appendChild(infoText);
+
+      const btnRow = document.createElement("div");
+      btnRow.style.cssText = "display:flex;gap:8px;margin-top:6px;";
+      const resetBtn = document.createElement("button");
+      resetBtn.className = "btn ghost";
+      resetBtn.style.cssText = "color:#f87171;border-color:rgba(239,68,68,0.3);width:100%;";
+      resetBtn.textContent = "Reset Key & Logout";
+      resetBtn.addEventListener("click", () => {
+        post({ t: "logout" });
+      });
+      btnRow.appendChild(resetBtn);
+      gg.appendChild(btnRow);
+    }));
     add(g, group("Status", (gg) => {
       const fields = [
         { id:"stProcess", label:"Roblox Process", val:"--" },
@@ -1553,6 +1572,15 @@ const TABS = [
         r.appendChild(l); r.appendChild(v); gg.appendChild(r);
       });
     }));
+    add(g, group("Background Settings", (gg) => {
+      const bgCombo = makeCombo("ui","bgMode",[[0,"Smoke Glass"],[1,"Light Beams"]]);
+      const bgHidden = bgCombo.querySelector("select");
+      if (bgHidden) bgHidden.addEventListener("change", applyBgMode);
+      gg.appendChild(row("Background Mode", bgCombo));
+      const bgCol = makeColor("ui","bgColor");
+      bgCol.addEventListener("input", () => { if ((SETTINGS.ui.bgMode === 0 || SETTINGS.ui.bgMode === 1) && !beamsRunning) startBeams(); });
+      gg.appendChild(row("Rays Color", bgCol));
+    }));
     add(g, group("Log Output", (gg) => {
       const logWrap = document.createElement("div");
       logWrap.className = "debug-log-wrap"; logWrap.id = "debugLogWrap";
@@ -1565,15 +1593,6 @@ const TABS = [
       clearBtn.className = "btn ghost"; clearBtn.textContent = "Clear Log";
       clearBtn.addEventListener("click", () => { const el = $("debugLogInner"); if (el) el.innerHTML = ''; });
       btnRow.appendChild(clearBtn); gg.appendChild(btnRow);
-    }));
-    add(g, group("Background Settings", (gg) => {
-      const bgCombo = makeCombo("ui","bgMode",[[0,"Smoke Glass"],[1,"Light Beams"]]);
-      const bgHidden = bgCombo.querySelector("select");
-      if (bgHidden) bgHidden.addEventListener("change", applyBgMode);
-      gg.appendChild(row("Background Mode", bgCombo));
-      const bgCol = makeColor("ui","bgColor");
-      bgCol.addEventListener("input", () => { if ((SETTINGS.ui.bgMode === 0 || SETTINGS.ui.bgMode === 1) && !beamsRunning) startBeams(); });
-      gg.appendChild(row("Rays Color", bgCol));
     }));
   }},
 ];
