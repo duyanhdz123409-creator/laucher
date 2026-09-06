@@ -1,0 +1,11 @@
+hash.txt
+offset.json
+offsets.json
+offsets.version
+config.json
+session.json
+*.tmp
+*.bak
+*.WebView2
+*.WebView2/
+
