@@ -1449,7 +1449,7 @@ const TABS = [
   { name:"Movement", build(g, add) {
     add(g, group("Fly", (gg) => {
       gg.appendChild(row("Enable Fly", makeSwitch("misc","flyEnabled")));
-      gg.appendChild(row("Fly Speed", makeSlider("misc","flySpeed",10,300,1,0)));
+      gg.appendChild(row("Fly Speed", makeSlider("misc","flySpeed",10,500,5,0)));
       gg.appendChild(row("Stealth Mode", makeSwitch("misc","flyStealth")));
     }));
     add(g, group("Character", (gg) => {
