@@ -1171,7 +1171,7 @@ function showFakeLoader() {
 }
 
 const DEFAULTS = {
-  aimbot: { enabled:false, teamMode:2, key:0, smooth:0.35, fovRadius:300, showFov:false, fovMode:0, colFov:"#ffffff", prediction:false, predX:13, predY:13, sticky:true, maxDistance:500 },
+  aimbot: { enabled:false, teamMode:2, key:0, smoothingMode:1, smooth:0.35, springStiffness:25, springDamping:1.0, fovRadius:300, showFov:false, fovMode:0, colFov:"#ffffff", prediction:false, predX:13, predY:13, sticky:true, maxDistance:500 },
   silent: { enabled:false, teamMode:2, showFov:false, fovMode:0, colFov:"#ffffff", mode:0, fov:500, smooth:0.45, prediction:false, predX:13, predY:13, targetName:"", maxDistance:500 },
   esp:    { enabled:false, teamMode:2, box:false, espMode:0, boxType:0, filled:true, outline:false, dot:false, health:false, healthPercent:false, armorBar:false, skeleton:false, name:false,
             distance:false, tracers:false, tracerMode:0, radar:false, radarRange:250,
@@ -1181,7 +1181,7 @@ const DEFAULTS = {
             colTracer:"#7C5CFC", colDot:"#FF3C3C",
             colChamsVisible:"#00FF00", colChamsHidden:"#FF0000", colArrow:"#FFFF00", colLookDir:"#00C8FF", colTool:"#C8C8C8",
             colArmor:"#46A0FF", colFlags:"#FFFFFF" },
-  misc:   { wsEnabled:false, teamMode:2, wsValue:16, jpEnabled:false, jpValue:50, autoR:false, autoRRange:15, autoRKey:0 },
+  misc:   { wsEnabled:false, teamMode:2, wsValue:16, jpEnabled:false, jpValue:50, autoR:false, autoRRange:15, autoRKey:0, flyEnabled:false, flySpeed:50, flyStealth:false },
   ui:     { watermark:false, fps:false, bgMode:0, bgColor:"#3b82f6" }
 };
 const SETTINGS = JSON.parse(JSON.stringify(DEFAULTS));
@@ -1408,7 +1408,10 @@ const TABS = [
       gg.appendChild(row("Enable Aimbot", makeSwitch("aimbot","enabled")));
       gg.appendChild(row("Team Mode", makeCombo("aimbot","teamMode",[[0,"Off"],[1,"Hide Same"],[2,"Pirate Rule"]])));
       gg.appendChild(row("Activation Key", makeKeybind("aimbot","key")));
+      gg.appendChild(row("Smoothing Mode", makeCombo("aimbot","smoothingMode",[[0,"Linear"],[1,"Exponential"],[2,"Spring"]])));
       gg.appendChild(row("Smoothness", makeSlider("aimbot","smooth",0.05,1,0.01,2)));
+      gg.appendChild(row("Spring Stiffness", makeSlider("aimbot","springStiffness",5,60,1,0)));
+      gg.appendChild(row("Spring Damping", makeSlider("aimbot","springDamping",0.1,3.0,0.05,2)));
       gg.appendChild(row("FOV Radius", makeSlider("aimbot","fovRadius",50,1000,1,0)));
       gg.appendChild(row("Show FOV", makeSwitch("aimbot","showFov")));
       gg.appendChild(row("FOV Mode", makeCombo("aimbot","fovMode",[[0,"Center"],[1,"Follow Mouse"]])));
@@ -1444,6 +1447,11 @@ const TABS = [
     }));
   }},
   { name:"Movement", build(g, add) {
+    add(g, group("Fly", (gg) => {
+      gg.appendChild(row("Enable Fly", makeSwitch("misc","flyEnabled")));
+      gg.appendChild(row("Fly Speed", makeSlider("misc","flySpeed",10,300,1,0)));
+      gg.appendChild(row("Stealth Mode", makeSwitch("misc","flyStealth")));
+    }));
     add(g, group("Character", (gg) => {
       gg.appendChild(row("Walkspeed", makeSwitch("misc","wsEnabled")));
       gg.appendChild(row("Team Mode", makeCombo("misc","teamMode",[[0,"Off"],[1,"Hide Same"],[2,"Pirate Rule"]])));
