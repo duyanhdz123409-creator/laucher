@@ -8,4 +8,8 @@ session.json
 *.bak
 *.WebView2
 *.WebView2/
+*Setup.exe
+*setup.exe
+Output/
+
 
