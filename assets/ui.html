@@ -557,6 +557,11 @@
     box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
     width: 340px;
   }
+  .auth-header {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    width: 100%; cursor: grab; user-select: none;
+  }
+  .auth-header:active { cursor: grabbing; }
   .auth-logo {
     width: auto; min-width: 56px; height: 52px; padding: 0 18px; border-radius: 12px;
     background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05);
@@ -885,9 +890,11 @@
 
   <div id="authScreen">
     <div class="auth-box" id="authBox">
-      <div class="auth-logo"><span class="logo-text">duyanh</span></div>
-      <div class="auth-title">DUYANH EXTERNAL</div>
-      <div class="auth-sub" id="authSubText">Get a 24-hour free key or verify Discord membership.</div>
+      <div class="auth-header" id="authHeader">
+        <div class="auth-logo"><span class="logo-text">duyanh</span></div>
+        <div class="auth-title">DUYANH EXTERNAL</div>
+        <div class="auth-sub" id="authSubText">Get a 24-hour free key or verify Discord membership.</div>
+      </div>
       <div class="auth-tabs">
         <button class="auth-tab active" id="tabBtnFree" onclick="switchAuthTab('free')">Free Key</button>
         <button class="auth-tab" id="tabBtnDiscord" onclick="switchAuthTab('discord')">Discord VIP</button>
@@ -1229,12 +1236,19 @@ function finishLoad() {
 setTimeout(() => { const loader = $("loader"); if (loader && !loader.classList.contains("done")) finishLoad(); }, 8000);
 
 let isDragging = false;
-document.querySelector(".header-top").addEventListener("mousedown", (e) => {
-  if (e.target.closest(".status,.pill,.inject-pill,button,input,select,label,.switch,.navbar-search")) return;
+function onDragStart(e) {
+  if (e.target.closest(".status,.pill,.inject-pill,button,input,select,label,.switch,.navbar-search,.auth-tabs,.auth-input-group,a")) return;
   isDragging = true;
   document.querySelector('.app').classList.add('dragging');
   post({ t: "drag_start", x: e.screenX, y: e.screenY });
-});
+}
+
+const headerTopEl = document.querySelector(".header-top");
+if (headerTopEl) headerTopEl.addEventListener("mousedown", onDragStart);
+
+const authScreenEl = document.getElementById("authScreen");
+if (authScreenEl) authScreenEl.addEventListener("mousedown", onDragStart);
+
 window.addEventListener("mousemove", (e) => { if (isDragging) post({ t: "drag_move", x: e.screenX, y: e.screenY }); });
 window.addEventListener("mouseup", () => {
   if (isDragging) {
