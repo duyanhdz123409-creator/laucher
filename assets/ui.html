@@ -893,11 +893,7 @@
       <div class="auth-header" id="authHeader">
         <div class="auth-logo"><span class="logo-text">duyanh</span></div>
         <div class="auth-title">DUYANH EXTERNAL</div>
-        <div class="auth-sub" id="authSubText">Get a 24-hour free key or verify Discord membership.</div>
-      </div>
-      <div class="auth-tabs">
-        <button class="auth-tab active" id="tabBtnFree" onclick="switchAuthTab('free')">Free Key</button>
-        <button class="auth-tab" id="tabBtnDiscord" onclick="switchAuthTab('discord')">Discord VIP</button>
+        <div class="auth-sub" id="authSubText">Sign in with Discord to verify VIP.</div>
       </div>
       <div id="authContent" style="width:100%"></div>
       <div class="auth-status" id="authStatusText"></div>
@@ -973,65 +969,7 @@
 "use strict";
 
 let AUTH = { status: 'not_authenticated', username: '', authorized: false, reason: '' };
-let currentAuthTab = 'free';
 let authUIRendered = '';
-let savedKeyInput = '';
-
-function switchAuthTab(tab) {
-  if (currentAuthTab === tab) return;
-  const inputEl = document.getElementById('freeKeyInput');
-  if (inputEl) savedKeyInput = inputEl.value;
-  currentAuthTab = tab;
-  authUIRendered = '';
-  document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
-  const activeBtn = document.getElementById(tab === 'free' ? 'tabBtnFree' : 'tabBtnDiscord');
-  if (activeBtn) activeBtn.classList.add('active');
-  const subEl = document.getElementById('authSubText');
-  if (subEl) {
-    subEl.textContent = tab === 'free'
-      ? 'Get a 24-hour free key or enter your existing key below.'
-      : 'Sign in with Discord to verify your server role.';
-  }
-  updateAuthUI();
-}
-
-function handleGetKey() {
-  const statusEl = document.getElementById('authStatusText');
-  if (statusEl) {
-    statusEl.className = 'auth-status waiting';
-    statusEl.textContent = 'Opening key page in browser...';
-  }
-  post({ t: 'get_key' });
-}
-
-function handlePasteKey() {
-  navigator.clipboard.readText().then(text => {
-    const inp = document.getElementById('freeKeyInput');
-    if (inp && text) {
-      inp.value = text.trim().toUpperCase();
-      savedKeyInput = inp.value;
-      inp.focus();
-    }
-  }).catch(() => {});
-}
-
-function handleRedeemKey() {
-  const inp = document.getElementById('freeKeyInput');
-  const key = inp ? inp.value.trim() : '';
-  const statusEl = document.getElementById('authStatusText');
-  if (!key) {
-    if (statusEl) {
-      statusEl.className = 'auth-status error';
-      statusEl.textContent = 'Please enter a key';
-    }
-    return;
-  }
-  if (statusEl) {
-    statusEl.className = 'auth-status waiting';
-    statusEl.textContent = 'Verifying key...';
-  }
-  post({ t: 'redeem_key', key });
-}
 
 function updateAuthUI() {
   const screen = document.getElementById('authScreen');
@@ -1039,7 +977,7 @@ function updateAuthUI() {
   const statusEl = document.getElementById('authStatusText');
   if (!screen || !content || !statusEl) return;
 
-  const renderKey = `${currentAuthTab}_${AUTH.status}_${AUTH.reason}`;
+  const renderKey = `${AUTH.status}_${AUTH.reason}`;
   if (authUIRendered === renderKey) return;
   authUIRendered = renderKey;
 
@@ -1053,7 +991,7 @@ function updateAuthUI() {
   screen.classList.remove('done');
   content.innerHTML = '';
 
-  if (AUTH.status === 'authenticating' || AUTH.status === 'redeeming_key' || AUTH.status === 'getting_key') {
+  if (AUTH.status === 'authenticating' || AUTH.status === 'auto_verifying') {
     const wrap = document.createElement('div');
     wrap.style.display = 'flex';
     wrap.style.flexDirection = 'column';
@@ -1065,81 +1003,36 @@ function updateAuthUI() {
     content.appendChild(wrap);
 
     statusEl.className = 'auth-status waiting';
-    if (AUTH.status === 'getting_key') statusEl.textContent = 'Opening key page...';
-    else if (AUTH.status === 'redeeming_key') statusEl.textContent = 'Verifying key...';
-    else statusEl.textContent = 'Waiting for Discord...';
+    if (AUTH.status === 'auto_verifying') {
+      statusEl.textContent = 'Verifying saved session...';
+    } else {
+      statusEl.textContent = 'Waiting for Discord authorization...';
+    }
     return;
   }
 
-  if (currentAuthTab === 'free') {
-    const panel = document.createElement('div');
-    panel.className = 'auth-panel';
+  const panel = document.createElement('div');
+  panel.className = 'auth-panel';
 
-    const getBtn = document.createElement('button');
-    getBtn.className = 'auth-btn-sec';
-    getBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Get Free Key (24h)</span>';
-    getBtn.onclick = handleGetKey;
-    panel.appendChild(getBtn);
+  const btn = document.createElement('button');
+  btn.className = 'btn primary';
+  btn.textContent = AUTH.status === 'failed' ? 'Try Discord Login Again' : 'Login with Discord';
+  btn.onclick = function() { post({ t: 'login' }); };
+  panel.appendChild(btn);
 
-    const inputGroup = document.createElement('div');
-    inputGroup.className = 'auth-input-group';
+  const tip = document.createElement('div');
+  tip.style.cssText = 'color:#64748b;font-size:11px;margin-top:10px;text-align:center;line-height:1.4;';
+  tip.textContent = 'Verifies your Discord VIP role.';
+  panel.appendChild(tip);
 
-    const inp = document.createElement('input');
-    inp.type = 'text';
-    inp.className = 'auth-input';
-    inp.id = 'freeKeyInput';
-    inp.placeholder = 'DY-XXXX-XXXX-XXXXXXXX';
-    inp.value = savedKeyInput || '';
-    inp.spellcheck = false;
-    inp.autocomplete = 'off';
-    inp.oninput = function() { savedKeyInput = inp.value; };
-    inp.onkeydown = function(e) { if (e.key === 'Enter') handleRedeemKey(); };
+  content.appendChild(panel);
 
-    const pasteBtn = document.createElement('button');
-    pasteBtn.className = 'auth-paste-btn';
-    pasteBtn.title = 'Paste from clipboard';
-    pasteBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>';
-    pasteBtn.onclick = handlePasteKey;
-
-    inputGroup.appendChild(inp);
-    inputGroup.appendChild(pasteBtn);
-    panel.appendChild(inputGroup);
-
-    const redeemBtn = document.createElement('button');
-    redeemBtn.className = 'btn primary';
-    redeemBtn.style.marginTop = '0';
-    redeemBtn.textContent = 'Verify & Enter';
-    redeemBtn.onclick = handleRedeemKey;
-    panel.appendChild(redeemBtn);
-
-    content.appendChild(panel);
-
-    if (AUTH.status === 'failed') {
-      statusEl.className = 'auth-status error';
-      statusEl.textContent = AUTH.reason || 'Verification failed';
-    } else {
-      statusEl.className = 'auth-status';
-      statusEl.textContent = 'Enter key and click Verify';
-    }
+  if (AUTH.status === 'failed') {
+    statusEl.className = 'auth-status error';
+    statusEl.textContent = AUTH.reason || 'Authentication failed';
   } else {
-    const panel = document.createElement('div');
-    panel.className = 'auth-panel';
-
-    const btn = document.createElement('button');
-    btn.className = 'btn primary';
-    btn.textContent = AUTH.status === 'failed' ? 'Try Discord Login Again' : 'Login with Discord';
-    btn.onclick = function() { post({ t: 'login' }); };
-    panel.appendChild(btn);
-
-    content.appendChild(panel);
-
-    if (AUTH.status === 'failed') {
-      statusEl.className = 'auth-status error';
-      statusEl.textContent = AUTH.reason || 'Authentication failed';
-    } else {
-      statusEl.className = 'auth-status';
-      statusEl.textContent = 'Discord role required';
-    }
+    statusEl.className = 'auth-status';
+    statusEl.textContent = 'Discord VIP role required';
   }
 }
 
@@ -1180,15 +1073,14 @@ function showFakeLoader() {
 const DEFAULTS = {
   aimbot: { enabled:false, teamMode:2, key:0, smoothingMode:1, smooth:0.35, springStiffness:25, springDamping:1.0, fovRadius:300, showFov:false, fovMode:0, colFov:"#ffffff", prediction:false, predX:13, predY:13, sticky:true, maxDistance:500 },
   silent: { enabled:false, method:0, teamMode:2, showFov:false, fovMode:0, colFov:"#ffffff", mode:0, fov:500, smooth:0.45, prediction:false, predX:13, predY:13, targetName:"", maxDistance:500 },
-  esp:    { enabled:false, teamMode:2, box:false, espMode:0, boxType:0, filled:true, outline:false, dot:false, health:false, healthPercent:false, armorBar:false, skeleton:false, name:false,
-            distance:false, tracers:false, tracerMode:0, radar:false, radarRange:250,
-            chams:false, offscreenArrows:false, arrowSize:20, toolName:false, lookDirection:false, lookDirLength:5,
-            headDot:false, headDotSize:4, snaplineFade:false, visibilityCheck:false, flags:false, maxRenderDistance:1000, distanceFade:false, fadeStartDist:200,
+  esp:    { enabled:false, teamMode:2, box:false, espMode:0, boxType:1, filled:true, outline:false, outlineFlags:15, glow:false, glowStrength:0.15, dot:false, health:false, healthWidth:2, healthText:false, armorBar:false, skeleton:false, skeletonWidth:0.8, name:false, nameFlags:1, nameSize:13,
+            distance:false, weapon:false, tracers:false, tracerMode:0, radar:false, radarRange:250,
+            chams:false, chamsType:0, offscreenArrows:false, arrowSize:20, toolName:false, lookDirection:false, lookDirLength:5,
+            headDot:false, headDotSize:4, snaplineFade:false, visibilityCheck:false, flags:false, maxRenderDistance:1000, distanceFade:false, fadeStartDist:200, drawLocal:false, fill:false,
             colBox:"#FFFFFF", colBoxFill:"#FFFFFF", colSkel:"#5CE1E6", colName:"#FFFFFF", colDist:"#AAAAAA",
-            colTracer:"#7C5CFC", colDot:"#FF3C3C",
-            colChamsVisible:"#00FF00", colChamsHidden:"#FF0000", colArrow:"#FFFF00", colLookDir:"#00C8FF", colTool:"#C8C8C8",
-            colArmor:"#46A0FF", colFlags:"#FFFFFF" },
-  misc:   { wsEnabled:false, teamMode:2, wsValue:16, jpEnabled:false, jpValue:50, autoR:false, autoRRange:15, autoRKey:0, flyEnabled:false, flySpeed:50, flyStealth:false },
+            colTracer:"#7C5CFC", colDot:"#FF3C3C", colChamsVisible:"#00FF00", colChamsHidden:"#FF0000", colArrow:"#FFFF00", colLookDir:"#00C8FF", colTool:"#C8C8C8",
+            colArmor:"#46A0FF", colFlags:"#FFFFFF", colHealth:"#00FF00", colHealthText:"#FFFFFF", colFill:"#FFFFFF" },
+  misc:   { wsEnabled:false, teamMode:2, wsValue:16, speedMethod:0, jpEnabled:false, jpValue:50, autoR:false, autoRRange:15, autoRKey:0, flyEnabled:false, flySpeed:50, flyStealth:false },
   ui:     { watermark:false, fps:false, bgMode:0, bgColor:"#3b82f6" }
 };
 const SETTINGS = JSON.parse(JSON.stringify(DEFAULTS));
@@ -1469,6 +1361,7 @@ const TABS = [
     }));
     add(g, group("Character", (gg) => {
       gg.appendChild(row("Walkspeed", makeSwitch("misc","wsEnabled")));
+      gg.appendChild(row("Speed Method", makeCombo("misc","speedMethod",[[0,"WalkSpeed"],[1,"Velocity (Blox)"]])));
       gg.appendChild(row("Team Mode", makeCombo("misc","teamMode",[[0,"Off"],[1,"Hide Same"],[2,"Pirate Rule"]])));
       gg.appendChild(row("Speed Value", makeSlider("misc","wsValue",16,300,1,0)));
       gg.appendChild(row("Jump Power", makeSwitch("misc","jpEnabled")));
@@ -1497,13 +1390,13 @@ const TABS = [
     }));
     add(g, group("ESP Display", (gg) => {
       gg.appendChild(row("Health Bar", makeSwitch("esp","health")));
-      gg.appendChild(row("Health Percent", makeSwitch("esp","healthPercent")));
+      gg.appendChild(row("Health Text", makeSwitch("esp","healthText")));
       gg.appendChild(row("Armor Bar", makeSwitch("esp","armorBar")));
       gg.appendChild(row("Skeleton", makeSwitch("esp","skeleton")));
       gg.appendChild(row("Name", makeSwitch("esp","name")));
       gg.appendChild(row("Distance", makeSwitch("esp","distance")));
       gg.appendChild(row("Tracers", makeSwitch("esp","tracers")));
-      gg.appendChild(row("Tracer Mode", makeCombo("esp","tracerMode",[[0,"Bottom"],[1,"Center"]])));
+      gg.appendChild(row("Tracer Mode", makeCombo("esp","tracerMode",[[0,"Bottom"],[1,"Center"],[2,"Top"]])));
       gg.appendChild(row("Radar", makeSwitch("esp","radar")));
       gg.appendChild(row("Radar Range", makeSlider("esp","radarRange",50,500,1,0)));
     }));
@@ -1561,10 +1454,10 @@ const TABS = [
     }));
   }},
   { name:"Setting", build(g, add) {
-    add(g, group("Session & Key", (gg) => {
+    add(g, group("Account & Session", (gg) => {
       const infoText = document.createElement("div");
       infoText.className = "info";
-      infoText.textContent = "Manage active session or reset your key to switch accounts.";
+      infoText.textContent = "Manage active session or logout to switch accounts.";
       gg.appendChild(infoText);
 
       const btnRow = document.createElement("div");
@@ -1572,7 +1465,7 @@ const TABS = [
       const resetBtn = document.createElement("button");
       resetBtn.className = "btn ghost";
       resetBtn.style.cssText = "color:#f87171;border-color:rgba(239,68,68,0.3);width:100%;";
-      resetBtn.textContent = "Reset Key & Logout";
+      resetBtn.textContent = "Logout";
       resetBtn.addEventListener("click", () => {
         post({ t: "logout" });
       });
